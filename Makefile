@@ -5,7 +5,7 @@ WASM_FLAGS = --target=wasm32 -nostdlib -ffreestanding -fno-exceptions '-Wl,--no-
 
 INCLUDES = -I./include/
 
-SRCS = ./src/main.c ./src/env/print.c
+SRCS = ./src/main.c ./src/env/print.c ./src/env/memory.c
 
 OUTPUT = ./public/build/main.wasm 
 
