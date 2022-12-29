@@ -43,11 +43,5 @@ memset(void* dst, uint8_t data, size_t len)
 int
 exported_function(int number)
 {
-  char in[5] = { 'a', 'b', 'c', 'd', '\0' };
-  char out[5];
-
-  memset(out, 0, 5);
-  memcpy(out, in, 5);
-
   return number * 3;
 }
