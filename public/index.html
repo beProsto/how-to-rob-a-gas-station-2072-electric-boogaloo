@@ -14,55 +14,58 @@
 	</style>
 
 	<script>
-		window.onload = async () => {
-			let wasmModule;
+		// Encapsulates logging (printing) functionality
+		class Logger {
+			constructor() {
+				this.logBuffer = "";
+				this.module = {};
+			}
+			printChar(ch) {
+				const char = String.fromCharCode(ch);
+				if (char == "\n") {
+					console.log(this.logBuffer);
+					this.logBuffer = "";
+				}
+				else {
+					this.logBuffer += char;
+				}
+			}
+			printString(str) {
+				const mem = new Uint8Array(this.module.instance.exports.memory.buffer);
+				for (let i = str; mem[i] != 0; i++) {
+					this.printChar(mem[i]);
+				}
+			}
+			printNumber(num) {
+				this.logBuffer += String(num);
+			}
+		}
 
+		// Entry point of the application
+		window.onload = async () => {
 			// const strToTxt = (strptr) => {
-			//     const memory_buffer = new Uint8Array(wasmModule.instance.exports.memory.buffer, strptr, wasmModule.instance.exports.strlen(str));
+			//     const memory_buffer = new Uint8Array(wasmModule.instance.exports.memory.buffer, strptr, wasmModule.instance.exports.strlen(strptr));
 			//     let text_buffer = new TextDecoder().decode(memory_buffer);
 			//     return text_buffer;
 			// };
 
-			let logBuffer = "";
-			const flushBuffer = () => {
-				console.log(logBuffer);
-				logBuffer = "";
-			};
+			const logger = new Logger();
 
-			wasmModule = await WebAssembly.instantiateStreaming(
-				fetch("./build/main.wasm"), {
-				env: {
-					// Printing (logging)
-					env_ps: (ptr) => {
-						const mem = new Uint8Array(wasmModule.instance.exports.memory.buffer);
-						for (let i = ptr; mem[i] != 0; i++) {
-							const char = String.fromCharCode(mem[i]);
-							if (char == "\n") {
-								flushBuffer();
-							}
-							else {
-								logBuffer += char;
-							}
-						}
-					},
-					env_pn: (num) => {
-						logBuffer += String(num);
-					},
-					env_pc: (ch) => {
-						const char = String.fromCharCode(ch);
-						if (char == "\n") {
-							flushBuffer();
-						}
-						else {
-							logBuffer += char;
-						}
-					},
-
+			const wasmModule = await WebAssembly.instantiateStreaming(
+				fetch("./build/main.wasm"),
+				{
+					env: {
+						// Printing (logging)
+						env_ps: (s) => logger.printString(s),
+						env_pn: (n) => logger.printNumber(n),
+						env_pc: (c) => logger.printChar(c),
+					}
 				}
-			}
 			);
 
-			wasmModule.instance.exports.exported_function(3);
+			logger.module = wasmModule;
+
+			wasmModule.instance.exports.main();
 		};
 	</script>
 </head>
