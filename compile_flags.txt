@@ -1,0 +1,1 @@
+--target=wasm32 -nostdlib -ffreestanding -fno-exceptions '-Wl,--no-entry' '-Wl,--export-all' '-Wl,--allow-undefined' -O2 -I./include/
