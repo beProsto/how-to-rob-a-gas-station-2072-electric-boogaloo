@@ -16,3 +16,20 @@ Use `make` to compile the project:
 make
 ```
 
+## TODO:
+
+To implement:
+
+1. STDLIB Reimplementation
+    - ~~logging (printf, etc)~~
+    - memory (malloc, memset, memcpy, realloc?, free)
+2. WebGL implementation
+    - porting
+3. Interactions
+    - Keboard input
+    - Mouse input
+    - Touch controls
+4. Sounds
+    - WebAudio API / DOM Audio Element
+
+5. __ THE REST __

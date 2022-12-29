@@ -1,28 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>How To Rob A Gas Station 2072 - Electric Boogaloo</title>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>How To Rob A Gas Station 2072 - Electric Boogaloo</title>
 
-    <style>
-        body {
-            background: black;
-        }
-    </style>
+	<style>
+		body {
+			background: black;
+		}
+	</style>
 
-    <script>
-        window.onload = async () => {
-            const wasmModule = await WebAssembly.instantiateStreaming(
-                fetch("./main.wasm"), {}
-            );
+	<script>
+		window.onload = async () => {
+			let wasmModule;
 
-            console.log(wasmModule.instance.exports.exported_function(3));
-        };
-    </script>
+			// const strToTxt = (strptr) => {
+			//     const memory_buffer = new Uint8Array(wasmModule.instance.exports.memory.buffer, strptr, wasmModule.instance.exports.strlen(str));
+			//     let text_buffer = new TextDecoder().decode(memory_buffer);
+			//     return text_buffer;
+			// };
+
+			let logBuffer = "";
+			const flushBuffer = () => {
+				console.log(logBuffer);
+				logBuffer = "";
+			};
+
+			wasmModule = await WebAssembly.instantiateStreaming(
+				fetch("./build/main.wasm"), {
+				env: {
+					// Printing (logging)
+					env_ps: (ptr) => {
+						const mem = new Uint8Array(wasmModule.instance.exports.memory.buffer);
+						for (let i = ptr; mem[i] != 0; i++) {
+							const char = String.fromCharCode(mem[i]);
+							if (char == "\n") {
+								flushBuffer();
+							}
+							else {
+								logBuffer += char;
+							}
+						}
+					},
+					env_pn: (num) => {
+						logBuffer += String(num);
+					},
+					env_pc: (ch) => {
+						const char = String.fromCharCode(ch);
+						if (char == "\n") {
+							flushBuffer();
+						}
+						else {
+							logBuffer += char;
+						}
+					},
+
+				}
+			}
+			);
+
+			wasmModule.instance.exports.exported_function(3);
+		};
+	</script>
 </head>
+
 <body>
 
 </body>
+
 </html>
