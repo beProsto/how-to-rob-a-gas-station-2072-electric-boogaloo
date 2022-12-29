@@ -1,2 +1,2 @@
-./public/build/
-!./public/build/.build
+public/build/
+!public/build/.build
