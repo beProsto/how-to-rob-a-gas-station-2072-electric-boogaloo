@@ -4,7 +4,7 @@
 void
 env_ps(const char*);
 void
-env_pn(float);
+env_pn(double);
 void
 env_pc(char);
 
