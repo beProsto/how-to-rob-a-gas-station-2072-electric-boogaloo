@@ -1,4 +1,4 @@
-# How to rob a gas station 2072 - Electric Boogaloo
+# How To Rob A Gas Station 2072 - Electric Boogaloo
 
 POtO Software's [How To Rob A Gas Station](https://poto-software.itch.io/how-to-rob-a-gas-station) game's fangame, but written in pure `C` with `WebAssembly`.
 
