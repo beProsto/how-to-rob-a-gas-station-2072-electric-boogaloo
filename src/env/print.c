@@ -1,6 +1,7 @@
 #include <env/print.h>
 
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 // Our own printf
@@ -37,6 +38,15 @@ printf(const char* fmt, ...)
           env_pn(numf);
           continue;
         }
+          // case 'b': {
+          //   bool b = va_arg(args, int);
+          //   if (b) {
+          //     env_ps("TRUE");
+          //   } else {
+          //     env_ps("FALSE");
+          //   }
+          //   continue;
+          // }
       }
     }
 
