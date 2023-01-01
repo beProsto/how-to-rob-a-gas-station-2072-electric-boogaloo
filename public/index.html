@@ -4,7 +4,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 	<title>How To Rob A Gas Station 2072 - Electric Boogaloo</title>
 
 	<style>
@@ -41,6 +41,59 @@
 			}
 		}
 
+		// Encapsulate mouse interactions
+		const mouse = {
+			position: { x: 0, y: 0 },
+			delta: { x: 0, y: 0 },
+			scroll: { x: 0, y: 0 },
+			buttons: []
+		};
+		window.onmousemove = (e) => {
+			mouse.position.x = e.clientX;
+			mouse.position.y = e.clientY;
+			mouse.delta.x = e.movementX;
+			mouse.delta.y = e.movementY;
+		};
+		window.onwheel = (e) => {
+			mouse.scroll.x = e.deltaX;
+			mouse.scroll.y = e.deltaY;
+		};
+		window.onmousedown = (e) => {
+			mouse.buttons[e.button] = true;
+		};
+		window.onmouseup = (e) => {
+			mouse.buttons[e.button] = false;
+		};
+		// Methods:
+		const mouseUpdate = () => {
+			mouse.delta.x = 0;
+			mouse.delta.y = 0;
+			mouse.scroll.x = 0;
+			mouse.scroll.y = 0;
+		};
+		// Preventions:
+		// Prevents the scroll wheel from zooming
+		window.addEventListener('wheel', (e) => { e.preventDefault(); }, { passive: false });
+		// Prevents the right click menu from appearing
+		window.oncontextmenu = (e) => { e.preventDefault(); };
+		// Prevents the web page from closing
+		window.onbeforeunload = (e) => {
+			// e.preventDefault();
+			// return "Are you sure";
+		};
+
+		// Encapsulate keyboard interactions
+		const keyboard = {
+			keys: []
+		};
+		window.onkeydown = (e) => {
+			e.preventDefault();
+			keyboard.keys[e.which] = true;
+		};
+		window.onkeyup = (e) => {
+			keyboard.keys[e.which] = false;
+		};
+
 		// Entry point of the application
 		window.onload = async () => {
 			// const strToTxt = (strptr) => {
@@ -59,6 +112,24 @@
 						env_ps: (s) => logger.printString(s),
 						env_pn: (n) => logger.printNumber(n),
 						env_pc: (c) => logger.printChar(c),
+						// Input(interactions)
+						//  Polling values all at once
+						env_ig: (ptr) => {
+							const pos_del_scr = new Int32Array(wasmModule.instance.exports.memory.buffer, ptr, 6);
+							pos_del_scr[0] = mouse.position.x;
+							pos_del_scr[1] = mouse.position.y;
+							pos_del_scr[2] = mouse.delta.x;
+							pos_del_scr[3] = mouse.delta.y;
+							pos_del_scr[4] = mouse.scroll.x;
+							pos_del_scr[5] = mouse.scroll.y;
+							const keys_buts = new Uint8Array(wasmModule.instance.exports.memory.buffer, ptr + 6 * 4, 256 + 5);
+							for (let i = 0; i < 256; i++) {
+								keys_buts[i] = keyboard.keys[i];
+							}
+							for (let i = 0; i < 5; i++) {
+								keys_buts[256 + i] = mouse.buttons[i];
+							}
+						},
 					}
 				}
 			);
@@ -66,6 +137,20 @@
 			logger.module = wasmModule;
 
 			wasmModule.instance.exports.main();
+
+			const gameLoop = (dt) => {
+				// console.log("M Pos: ", mouse.position.x, ":", mouse.position.y);
+				// console.log("M Delta: ", mouse.delta.x, ":", mouse.delta.y);
+				// console.log("M Scroll: ", mouse.scroll.x, ":", mouse.scroll.y);
+				// console.log("M Butts: ", mouse.buttons[0], ":", mouse.buttons[1], ":", mouse.buttons[2], ":", mouse.buttons[3], ":", mouse.buttons[4]);
+				// console.log("WSAD Keys: ", keyboard.keys[87], ":", keyboard.keys[83], ":", keyboard.keys[65], ":", keyboard.keys[68]);
+
+				wasmModule.instance.exports.loop();
+
+				mouseUpdate();
+				window.requestAnimationFrame(gameLoop);
+			};
+			window.requestAnimationFrame(gameLoop);
 		};
 	</script>
 </head>
