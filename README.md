@@ -27,11 +27,11 @@ To implement:
 
 1. ~~basic stdlib utils implementation~~
     - ~~logging (printf, etc)~~
-    - ~~memory (malloc, memset, memcpy, realloc?, free)~~
+    - ~~memory (malloc, memset, memcpy, free)~~
 2. Interactions
-    - Keboard input
-    - Mouse input
-    - Touch controls
+    - ~~Keboard input~~
+    - ~~Mouse input~~
+    - Touch controls [[LEFT FOR LATER]]
 3. WebGL implementation
     - porting
 4. Sounds
