@@ -31,7 +31,7 @@ To implement:
 2. Interactions
     - ~~Keboard input~~
     - ~~Mouse input~~
-    - Touch controls [[LEFT FOR LATER]]
+    - Touch controls *(Left for later)*
 3. WebGL implementation
     - porting
 4. Sounds
