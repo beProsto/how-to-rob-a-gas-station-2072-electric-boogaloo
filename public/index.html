@@ -14,11 +14,20 @@
 	</style>
 
 	<script>
+		// Global module reference
+		let module = {};
+
+		// Takes in a pointer to a string and returns said string
+		const stringFromPointer = (strptr) => {
+			const memory_buffer = new Uint8Array(module.instance.exports.memory.buffer, strptr, module.instance.exports.strlen(strptr));
+			let text_buffer = new TextDecoder().decode(memory_buffer);
+			return text_buffer;
+		};
+
 		// Encapsulates logging (printing) functionality
 		class Logger {
 			constructor() {
 				this.logBuffer = "";
-				this.module = {};
 			}
 			printChar(ch) {
 				const char = String.fromCharCode(ch);
@@ -31,7 +40,7 @@
 				}
 			}
 			printString(str) {
-				const mem = new Uint8Array(this.module.instance.exports.memory.buffer);
+				const mem = new Uint8Array(module.instance.exports.memory.buffer);
 				for (let i = str; mem[i] != 0; i++) {
 					this.printChar(mem[i]);
 				}
@@ -46,8 +55,6 @@
 			constructor() {
 				this.integers = [];
 				this.booleans = [];
-
-				this.module = {};
 
 				window.onmousemove = (e) => {
 					this.integers[0] = e.clientX;
@@ -69,11 +76,11 @@
 			}
 			// Put serialised data in the input structure
 			get(ptr) {
-				const position_delta_scroll = new Int32Array(this.module.instance.exports.memory.buffer, ptr, 6);
+				const position_delta_scroll = new Int32Array(module.instance.exports.memory.buffer, ptr, 6);
 				for (let i = 0; i < 6; i++) {
 					position_delta_scroll[i] = this.integers[i];
 				}
-				const keys_buttons = new Uint8Array(this.module.instance.exports.memory.buffer, ptr + 24, 261);
+				const keys_buttons = new Uint8Array(module.instance.exports.memory.buffer, ptr + 24, 261);
 				for (let i = 0; i < 261; i++) {
 					keys_buttons[i] = this.booleans[i];
 				}
@@ -87,19 +94,13 @@
 			}
 		}
 
-
 		// Entry point of the application
 		window.onload = async () => {
-			// const strToTxt = (strptr) => {
-			//     const memory_buffer = new Uint8Array(wasmModule.instance.exports.memory.buffer, strptr, wasmModule.instance.exports.strlen(strptr));
-			//     let text_buffer = new TextDecoder().decode(memory_buffer);
-			//     return text_buffer;
-			// };
 
 			const logger = new Logger();
 			const input = new Input();
 
-			const wasmModule = await WebAssembly.instantiateStreaming(
+			module = await WebAssembly.instantiateStreaming(
 				fetch("./build/main.wasm"),
 				{
 					env: {
@@ -113,13 +114,10 @@
 				}
 			);
 
-			logger.module = wasmModule;
-			input.module = wasmModule;
-
-			wasmModule.instance.exports.main();
+			module.instance.exports.main();
 
 			const gameLoop = (dt) => {
-				wasmModule.instance.exports.loop();
+				module.instance.exports.loop();
 
 				input.update();
 				window.requestAnimationFrame(gameLoop);
