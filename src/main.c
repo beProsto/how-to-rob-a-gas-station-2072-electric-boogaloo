@@ -1,7 +1,6 @@
 #include <env/input.h>
 #include <env/memory.h>
 #include <env/print.h>
-#include <stdbool.h>
 
 void
 main()

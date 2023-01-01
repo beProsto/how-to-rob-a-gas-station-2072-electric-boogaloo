@@ -41,58 +41,65 @@
 			}
 		}
 
-		// Encapsulate mouse interactions
-		const mouse = {
-			position: { x: 0, y: 0 },
-			delta: { x: 0, y: 0 },
-			scroll: { x: 0, y: 0 },
-			buttons: []
-		};
-		window.onmousemove = (e) => {
-			mouse.position.x = e.clientX;
-			mouse.position.y = e.clientY;
-			mouse.delta.x = e.movementX;
-			mouse.delta.y = e.movementY;
-		};
-		window.onwheel = (e) => {
-			mouse.scroll.x = e.deltaX;
-			mouse.scroll.y = e.deltaY;
-		};
-		window.onmousedown = (e) => {
-			mouse.buttons[e.button] = true;
-		};
-		window.onmouseup = (e) => {
-			mouse.buttons[e.button] = false;
-		};
-		// Methods:
-		const mouseUpdate = () => {
-			mouse.delta.x = 0;
-			mouse.delta.y = 0;
-			mouse.scroll.x = 0;
-			mouse.scroll.y = 0;
-		};
-		// Preventions:
-		// Prevents the scroll wheel from zooming
-		window.addEventListener('wheel', (e) => { e.preventDefault(); }, { passive: false });
-		// Prevents the right click menu from appearing
-		window.oncontextmenu = (e) => { e.preventDefault(); };
-		// Prevents the web page from closing
-		window.onbeforeunload = (e) => {
-			// e.preventDefault();
-			// return "Are you sure";
-		};
+		// Encapsulate input
+		class Input {
+			constructor() {
+				this.mouse = {
+					position: { x: 0, y: 0 },
+					delta: { x: 0, y: 0 },
+					scroll: { x: 0, y: 0 },
+					buttons: []
+				};
+				this.keyboard = {
+					keys: []
+				};
 
-		// Encapsulate keyboard interactions
-		const keyboard = {
-			keys: []
-		};
-		window.onkeydown = (e) => {
-			e.preventDefault();
-			keyboard.keys[e.which] = true;
-		};
-		window.onkeyup = (e) => {
-			keyboard.keys[e.which] = false;
-		};
+				this.module = {};
+
+				window.onmousemove = (e) => {
+					this.mouse.position.x = e.clientX;
+					this.mouse.position.y = e.clientY;
+					this.mouse.delta.x = e.movementX;
+					this.mouse.delta.y = e.movementY;
+				};
+				window.onwheel = (e) => {
+					this.mouse.scroll.x = e.deltaX;
+					this.mouse.scroll.y = e.deltaY;
+				};
+				window.onmousedown = (e) => { this.mouse.buttons[e.button] = true; };
+				window.onmouseup = (e) => { this.mouse.buttons[e.button] = false; };
+				window.addEventListener('wheel', (e) => { e.preventDefault(); }, { passive: false });
+				window.oncontextmenu = (e) => { e.preventDefault(); };
+				// window.onbeforeunload = (e) => { e.preventDefault(); return "Are you sure"; };
+				window.onkeydown = (e) => { e.preventDefault(); this.keyboard.keys[e.which] = true; };
+				window.onkeyup = (e) => { this.keyboard.keys[e.which] = false; };
+			}
+			// Put data in the input structure
+			get(ptr) {
+				const pos_del_scr = new Int32Array(this.module.instance.exports.memory.buffer, ptr, 6);
+				pos_del_scr[0] = this.mouse.position.x;
+				pos_del_scr[1] = this.mouse.position.y;
+				pos_del_scr[2] = this.mouse.delta.x;
+				pos_del_scr[3] = this.mouse.delta.y;
+				pos_del_scr[4] = this.mouse.scroll.x;
+				pos_del_scr[5] = this.mouse.scroll.y;
+				const keys_buts = new Uint8Array(this.module.instance.exports.memory.buffer, ptr + 6 * 4, 256 + 5);
+				for (let i = 0; i < 256; i++) {
+					keys_buts[i] = this.keyboard.keys[i];
+				}
+				for (let i = 0; i < 5; i++) {
+					keys_buts[256 + i] = this.mouse.buttons[i];
+				}
+			}
+			// Values that need resetting each frame:
+			update() {
+				this.mouse.delta.x = 0;
+				this.mouse.delta.y = 0;
+				this.mouse.scroll.x = 0;
+				this.mouse.scroll.y = 0;
+			}
+		}
+
 
 		// Entry point of the application
 		window.onload = async () => {
@@ -103,6 +110,7 @@
 			// };
 
 			const logger = new Logger();
+			const input = new Input();
 
 			const wasmModule = await WebAssembly.instantiateStreaming(
 				fetch("./build/main.wasm"),
@@ -112,42 +120,21 @@
 						env_ps: (s) => logger.printString(s),
 						env_pn: (n) => logger.printNumber(n),
 						env_pc: (c) => logger.printChar(c),
-						// Input(interactions)
-						//  Polling values all at once
-						env_ig: (ptr) => {
-							const pos_del_scr = new Int32Array(wasmModule.instance.exports.memory.buffer, ptr, 6);
-							pos_del_scr[0] = mouse.position.x;
-							pos_del_scr[1] = mouse.position.y;
-							pos_del_scr[2] = mouse.delta.x;
-							pos_del_scr[3] = mouse.delta.y;
-							pos_del_scr[4] = mouse.scroll.x;
-							pos_del_scr[5] = mouse.scroll.y;
-							const keys_buts = new Uint8Array(wasmModule.instance.exports.memory.buffer, ptr + 6 * 4, 256 + 5);
-							for (let i = 0; i < 256; i++) {
-								keys_buts[i] = keyboard.keys[i];
-							}
-							for (let i = 0; i < 5; i++) {
-								keys_buts[256 + i] = mouse.buttons[i];
-							}
-						},
+						// Polling input values all at once
+						env_ig: (ptr) => input.get(ptr),
 					}
 				}
 			);
 
 			logger.module = wasmModule;
+			input.module = wasmModule;
 
 			wasmModule.instance.exports.main();
 
 			const gameLoop = (dt) => {
-				// console.log("M Pos: ", mouse.position.x, ":", mouse.position.y);
-				// console.log("M Delta: ", mouse.delta.x, ":", mouse.delta.y);
-				// console.log("M Scroll: ", mouse.scroll.x, ":", mouse.scroll.y);
-				// console.log("M Butts: ", mouse.buttons[0], ":", mouse.buttons[1], ":", mouse.buttons[2], ":", mouse.buttons[3], ":", mouse.buttons[4]);
-				// console.log("WSAD Keys: ", keyboard.keys[87], ":", keyboard.keys[83], ":", keyboard.keys[65], ":", keyboard.keys[68]);
-
 				wasmModule.instance.exports.loop();
 
-				mouseUpdate();
+				input.update();
 				window.requestAnimationFrame(gameLoop);
 			};
 			window.requestAnimationFrame(gameLoop);
