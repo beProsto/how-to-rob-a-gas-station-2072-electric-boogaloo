@@ -28,7 +28,7 @@ To implement:
 1. ~~basic stdlib utils implementation~~
     - ~~logging (printf, etc)~~
     - ~~memory (malloc, memset, memcpy, free)~~
-2. Interactions
+2. ~~Interactions~~
     - ~~Keboard input~~
     - ~~Mouse input~~
     - Touch controls *(Left for later)*
