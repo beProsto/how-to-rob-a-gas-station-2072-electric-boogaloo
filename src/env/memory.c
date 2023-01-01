@@ -377,3 +377,21 @@ memset(void* dst, uint8_t data, size_t len)
 
   return dst;
 }
+
+size_t
+strlen(const char* str)
+{
+  const char* str_end = str;
+  while (true) {
+    unsigned x = *(unsigned*)str_end;
+    if ((x & 0xFF) == 0)
+      return str_end - str;
+    if ((x & 0xFF00) == 0)
+      return str_end - str + 1;
+    if ((x & 0xFF0000) == 0)
+      return str_end - str + 2;
+    if ((x & 0xFF000000) == 0)
+      return str_end - str + 3;
+    str_end += 4;
+  }
+}
