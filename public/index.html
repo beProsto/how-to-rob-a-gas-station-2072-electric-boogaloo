@@ -41,62 +41,49 @@
 			}
 		}
 
-		// Encapsulate input
+		// Encapsulate (serialised) input
 		class Input {
 			constructor() {
-				this.mouse = {
-					position: { x: 0, y: 0 },
-					delta: { x: 0, y: 0 },
-					scroll: { x: 0, y: 0 },
-					buttons: []
-				};
-				this.keyboard = {
-					keys: []
-				};
+				this.integers = [];
+				this.booleans = [];
 
 				this.module = {};
 
 				window.onmousemove = (e) => {
-					this.mouse.position.x = e.clientX;
-					this.mouse.position.y = e.clientY;
-					this.mouse.delta.x = e.movementX;
-					this.mouse.delta.y = e.movementY;
+					this.integers[0] = e.clientX;
+					this.integers[1] = e.clientY;
+					this.integers[2] = e.movementX;
+					this.integers[3] = e.movementY;
 				};
 				window.onwheel = (e) => {
-					this.mouse.scroll.x = e.deltaX;
-					this.mouse.scroll.y = e.deltaY;
+					this.integers[4] = e.deltaX;
+					this.integers[5] = e.deltaY;
 				};
-				window.onmousedown = (e) => { this.mouse.buttons[e.button] = true; };
-				window.onmouseup = (e) => { this.mouse.buttons[e.button] = false; };
+				window.onmousedown = (e) => { this.booleans[256 + e.button] = true; };
+				window.onmouseup = (e) => { this.booleans[256 + e.button] = false; };
 				window.addEventListener('wheel', (e) => { e.preventDefault(); }, { passive: false });
 				window.oncontextmenu = (e) => { e.preventDefault(); };
-				// window.onbeforeunload = (e) => { e.preventDefault(); return "Are you sure"; };
-				window.onkeydown = (e) => { e.preventDefault(); this.keyboard.keys[e.which] = true; };
-				window.onkeyup = (e) => { this.keyboard.keys[e.which] = false; };
+				//window.onbeforeunload = (e) => { e.preventDefault(); return "Are you sure"; };
+				window.onkeydown = (e) => { e.preventDefault(); this.booleans[e.which] = true; };
+				window.onkeyup = (e) => { this.booleans[e.which] = false; };
 			}
-			// Put data in the input structure
+			// Put serialised data in the input structure
 			get(ptr) {
-				const pos_del_scr = new Int32Array(this.module.instance.exports.memory.buffer, ptr, 6);
-				pos_del_scr[0] = this.mouse.position.x;
-				pos_del_scr[1] = this.mouse.position.y;
-				pos_del_scr[2] = this.mouse.delta.x;
-				pos_del_scr[3] = this.mouse.delta.y;
-				pos_del_scr[4] = this.mouse.scroll.x;
-				pos_del_scr[5] = this.mouse.scroll.y;
-				const keys_buts = new Uint8Array(this.module.instance.exports.memory.buffer, ptr + 6 * 4, 256 + 5);
-				for (let i = 0; i < 256; i++) {
-					keys_buts[i] = this.keyboard.keys[i];
+				const position_delta_scroll = new Int32Array(this.module.instance.exports.memory.buffer, ptr, 6);
+				for (let i = 0; i < 6; i++) {
+					position_delta_scroll[i] = this.integers[i];
 				}
-				for (let i = 0; i < 5; i++) {
-					keys_buts[256 + i] = this.mouse.buttons[i];
+				const keys_buttons = new Uint8Array(this.module.instance.exports.memory.buffer, ptr + 24, 261);
+				for (let i = 0; i < 261; i++) {
+					keys_buttons[i] = this.booleans[i];
 				}
 			}
 			// Values that need resetting each frame:
 			update() {
-				this.mouse.delta.x = 0;
-				this.mouse.delta.y = 0;
-				this.mouse.scroll.x = 0;
-				this.mouse.scroll.y = 0;
+				this.integers[2] = 0;
+				this.integers[3] = 0;
+				this.integers[4] = 0;
+				this.integers[5] = 0;
 			}
 		}
 
