@@ -3,6 +3,8 @@
 #include <env/print.h>
 #include <env/webgl.h>
 
+int loc_aspect;
+
 void
 main()
 {
@@ -14,24 +16,17 @@ main()
 
   const float verts[6] = { -0.5, -0.5, 0.0, 0.5, 0.5, -0.5 };
 
-  const char* vertexShader =
-    "#version 300 es\n"
-    "precision mediump float;"
-    "layout(location = 0) in vec3 a_Position;"
-    "layout(location = 1) in vec2 a_TexCoord;"
-    "layout(location = 2) in vec3 a_Normal;"
-    "out vec4 v_Color;"
-    "uniform vec3 u_Offset;"
-    "uniform vec3 u_Size;"
-    "uniform float u_Aspect;"
-    "void main()"
-    "{"
-    "vec3 offset = u_Offset;"
-    "offset.y = u_Offset.y / u_Aspect;"
-    "gl_Position = vec4(a_Position * u_Size + offset, 1.0f);"
-    "gl_Position.y = gl_Position.y * u_Aspect;"
-    "v_Color = vec4(a_TexCoord, 0.5f, 1.0f);"
-    "}";
+  const char* vertexShader = "#version 300 es\n"
+                             "precision mediump float;"
+                             "layout(location = 0) in vec2 a_Position;"
+                             "out vec4 v_Color;"
+                             "uniform float u_Aspect;"
+                             "void main()"
+                             "{"
+                             "gl_Position = vec4(a_Position.x / "
+                             "u_Aspect, a_Position.y, 0.0f, 1.0f);"
+                             "v_Color = vec4(1.0f, 1.0f, 0.5f, 1.0f);"
+                             "}";
   const char* fragmentShader = "#version 300 es\n"
                                "precision mediump float;"
                                "out vec4 o_Color;"
@@ -44,12 +39,12 @@ main()
   uint32_t vbo = 0, vao = 0, program = 0;
 
   vao = glCreateVertexArray();
-  glBindVertexArray(vao);
   vbo = glCreateBuffer();
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(
     GL_ARRAY_BUFFER, sizeof(verts), (void*)&verts[0], GL_STATIC_DRAW);
 
+  glBindVertexArray(vao);
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
   glEnableVertexAttribArray(0);
 
@@ -74,6 +69,8 @@ main()
 
   glUseProgram(program);
 
+  loc_aspect = glGetUniformLocation(program, "u_Aspect");
+
   printf("%s The number's %d, and char's %c\nAAAAAA THERE ARE DECIMALS ALSO "
          "%f!!!\n",
          string1,
@@ -91,6 +88,9 @@ loop()
 
   glClear(GL_COLOR_BUFFER_BIT);
 
+  float aspect_ratio = (float)input.width / (float)input.height;
+
+  glUniform1f(loc_aspect, aspect_ratio);
   glDrawArrays(GL_TRIANGLES, 0, 3);
 
   // printf("Mouse is on: %d : %d\n", input.position_x, input.position_y);

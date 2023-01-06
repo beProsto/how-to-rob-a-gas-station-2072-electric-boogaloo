@@ -32,8 +32,8 @@ To implement:
     - ~~Keboard input~~
     - ~~Mouse input~~
     - Touch controls *(Left for later)*
-3. WebGL implementation
-    - porting
+3. ~~WebGL implementation~~
+    - ~~porting~~
 4. Sounds
     - WebAudio API / DOM Audio Element
 

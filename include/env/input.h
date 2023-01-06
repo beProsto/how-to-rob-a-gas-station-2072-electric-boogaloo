@@ -12,6 +12,8 @@ struct input_t
   int32_t delta_y;
   int32_t scroll_x;
   int32_t scroll_y;
+  uint32_t width;
+  uint32_t height;
   bool keys[256];
   bool buttons[5];
 };

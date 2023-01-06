@@ -5,6 +5,8 @@
 	<meta charset="UTF-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<script src="https://cdn.jsdelivr.net/npm/resonance-audio/build/resonance-audio.min.js"></script>
+
 	<title>How To Rob A Gas Station 2072 - Electric Boogaloo</title>
 
 	<style>
@@ -53,7 +55,11 @@
 		// Encapsulate (serialised) input
 		class Input {
 			constructor() {
+				this.integersSize = 8;
+				this.integersSizeBytes = 8 * 4;
 				this.integers = [];
+				this.booleansSize = 261;
+				this.booleansSizeBytes = 261 * 1;
 				this.booleans = [];
 
 				window.onmousemove = (e) => {
@@ -66,6 +72,12 @@
 					this.integers[4] = e.deltaX;
 					this.integers[5] = e.deltaY;
 				};
+				const onresize = (e) => {
+					this.integers[6] = window.innerWidth * window.devicePixelRatio;
+					this.integers[7] = window.innerHeight * window.devicePixelRatio;
+				};
+				window.addEventListener("resize", onresize);
+				onresize();
 				window.onmousedown = (e) => { this.booleans[256 + e.button] = true; };
 				window.onmouseup = (e) => { this.booleans[256 + e.button] = false; };
 				window.addEventListener('wheel', (e) => { e.preventDefault(); }, { passive: false });
@@ -76,12 +88,12 @@
 			}
 			// Put serialised data in the input structure
 			get(ptr) {
-				const position_delta_scroll = new Int32Array(module.instance.exports.memory.buffer, ptr, 6);
-				for (let i = 0; i < 6; i++) {
+				const position_delta_scroll = new Int32Array(module.instance.exports.memory.buffer, ptr, this.integersSize);
+				for (let i = 0; i < this.integersSize; i++) {
 					position_delta_scroll[i] = this.integers[i];
 				}
-				const keys_buttons = new Uint8Array(module.instance.exports.memory.buffer, ptr + 24, 261);
-				for (let i = 0; i < 261; i++) {
+				const keys_buttons = new Uint8Array(module.instance.exports.memory.buffer, ptr + this.integersSizeBytes, this.booleansSize);
+				for (let i = 0; i < this.booleansSize; i++) {
 					keys_buttons[i] = this.booleans[i];
 				}
 			}
@@ -105,16 +117,17 @@
 					throw new Error("WebGL 2 is not supported by your browser!");
 				}
 				// Properly size the canvas
-				window.onresize = (e) => {
+				const onresize = (e) => {
 					this.canvas.width = this.canvas.clientWidth * window.devicePixelRatio;
 					this.canvas.height = this.canvas.clientHeight * window.devicePixelRatio;
 					this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 				};
-				window.onresize();
+				window.addEventListener("resize", onresize);
+				onresize();
 				// Create arrays for C code to reference 
 				// as OpenGL objects (via uint32_t's).
 				this.boundProgram = {};
-				this.glObjects = []
+				this.glObjects = [];
 			}
 			// View
 			glClearColor(r, g, b, a) {
@@ -260,12 +273,42 @@
 			}
 		}
 
+		// Encapsulate Audio using WebAudio
+		class WASMWebAudio {
+			constructor() {
+				this.audioCtx = new AudioContext();
+				this.audioCtx.resume();
+
+				this.resonanceAudioScene = new ResonanceAudio(this.audioCtx);
+				this.resonanceAudioScene.output.connect(this.audioCtx.destination);
+				this.resonanceAudioScene.setRoomProperties({}, {});
+
+				this.resonanceSource = this.resonanceAudioScene.createSource();
+				this.resonanceSource.setPosition(0.0, 0.0, -0.5);
+
+				this.downloadAndPlayAudio = async (url) => {
+					const audioFile = await fetch(url);
+					const audioArrayBuffer = await audioFile.arrayBuffer();
+					const audioDecodedData = await this.audioCtx.decodeAudioData(audioArrayBuffer);
+
+					const bufferSource = this.audioCtx.createBufferSource();
+					bufferSource.connect(this.resonanceSource.input);
+					bufferSource.buffer = audioDecodedData;
+					bufferSource.start();
+				};
+			}
+
+		}
+
 		// Entry point of the application
 		window.onload = async () => {
 
 			const webgl = new WASMWebGL("MainCanvas");
 			const logger = new Logger();
 			const input = new Input();
+			let audio = new WASMWebAudio();
+
+			audio.downloadAndPlayAudio("./nsmusic-waterfall.mp3");
 
 			module = await WebAssembly.instantiateStreaming(
 				fetch("./build/main.wasm"),
