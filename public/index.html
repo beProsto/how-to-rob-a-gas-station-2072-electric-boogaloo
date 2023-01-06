@@ -94,11 +94,176 @@
 			}
 		}
 
-		// Encapsulate 
+		// Encapsulate WebGL links for WASM
+		class WASMWebGL {
+			constructor(canvas_id) {
+				// Init WebGL2
+				this.canvas = document.getElementById(canvas_id);
+				this.gl = this.canvas.getContext("webgl2");
+				if (!this.gl) {
+					alert("WebGL 2 is not supported by your browser!");
+					throw new Error("WebGL 2 is not supported by your browser!");
+				}
+				// Properly size the canvas
+				window.onresize = (e) => {
+					this.canvas.width = this.canvas.clientWidth * window.devicePixelRatio;
+					this.canvas.height = this.canvas.clientHeight * window.devicePixelRatio;
+					this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+				};
+				window.onresize();
+				// Create arrays for C code to reference 
+				// as OpenGL objects (via uint32_t's).
+				this.boundProgram = {};
+				this.glObjects = []
+			}
+			// View
+			glClearColor(r, g, b, a) {
+				this.gl.clearColor(r, g, b, a);
+			}
+			glClear(m) {
+				this.gl.clear(m);
+			}
+			glViewport(x, y, w, h) {
+				this.gl.viewport(x, y, w, h);
+			}
+			glDrawArrays(m, f, c) {
+				this.gl.drawArrays(m, f, c);
+			}
+			// Shaders
+			glCreateShader(k) {
+				this.glObjects.push(this.gl.createShader(k));
+				return this.glObjects.length - 1;
+			}
+			glShaderSource(id, str) {
+				this.gl.shaderSource(this.glObjects[id], stringFromPointer(str));
+			}
+			glCompileShader(id) {
+				this.gl.compileShader(this.glObjects[id]);
+
+				// Debug purposes:
+				console.log('Shader compiled successfully: ' + this.gl.getShaderParameter(this.glObjects[id], this.gl.COMPILE_STATUS));
+				console.log('Shader compiler log: ' + this.gl.getShaderInfoLog(this.glObjects[id]));
+			}
+			glDeleteShader(id) {
+				this.gl.deleteShader(this.glObjects[id]);
+				delete this.glObjects[id];
+				// this.glObjects.splice(id, 1);
+			}
+			// Programmes
+			glCreateProgram() {
+				this.glObjects.push(this.gl.createProgram());
+				return this.glObjects.length - 1;
+			}
+			glAttachShader(id, shader) {
+				this.gl.attachShader(this.glObjects[id], this.glObjects[shader]);
+			}
+			glLinkProgram(id) {
+				this.gl.linkProgram(this.glObjects[id]);
+
+				// Debug purposes:
+				console.log("Program link status: " + this.gl.getProgramParameter(this.glObjects[id], this.gl.LINK_STATUS));
+				console.log("Program Linker log: " + this.gl.getProgramInfoLog(this.glObjects[id]));
+			}
+			glValidateProgram(id) {
+				this.gl.validateProgram(this.glObjects[id]);
+
+				// Upon validation we make up a list of uniform locations (both assigned by Id and Name)
+				const numUniforms = this.gl.getProgramParameter(this.glObjects[id], this.gl.ACTIVE_UNIFORMS);
+				console.log("We got: " + numUniforms + " uniforms!")
+				this.glObjects[id].uniformLocsById = [];
+				this.glObjects[id].uniformIdsByName = {};
+				for (let i = 0; i < numUniforms; ++i) {
+					const info = this.gl.getActiveUniform(this.glObjects[id], i);
+					console.log('name:', info.name, 'type:', info.type, 'size:', info.size);
+					this.glObjects[id].uniformLocsById[i] = this.gl.getUniformLocation(this.glObjects[id], info.name);
+					this.glObjects[id].uniformIdsByName[info.name] = i;
+				}
+			}
+			glUseProgram(id) {
+				this.gl.useProgram(this.glObjects[id]);
+				this.boundProgram = this.glObjects[id];
+			}
+			glDeleteProgram(id) {
+				this.gl.deleteProgram(this.glObjects[id]);
+				delete this.glObjects[id];
+				// this.glObjects.splice(id, 1);
+			}
+			// Programmes - Uniforms
+			glGetUniformLocation(program_id, str) {
+				const name = stringFromPointer(str);
+				if (typeof this.glObjects[program_id].uniformIdsByName[name] !== 'undefined') {
+					return this.glObjects[program_id].uniformIdsByName[name];
+				}
+				else {
+					return -1;
+				}
+			}
+			glUniform1f(loc, v0) {
+				this.gl.uniform1f(this.boundProgram.uniformLocsById[loc], v0);
+			}
+			glUniform1i(loc, v0) {
+				this.gl.uniform1i(this.boundProgram.uniformLocsById[loc], v0);
+			}
+			glUniform2f(loc, v0, v1) {
+				this.gl.uniform2f(this.boundProgram.uniformLocsById[loc], v0, v1);
+			}
+			glUniform2i(loc, v0, v1) {
+				this.gl.uniform2i(this.boundProgram.uniformLocsById[loc], v0, v1);
+			}
+			glUniform3f(loc, v0, v1, v2) {
+				this.gl.uniform3f(this.boundProgram.uniformLocsById[loc], v0, v1, v2);
+			}
+			glUniform3i(loc, v0, v1, v2) {
+				this.gl.uniform3i(this.boundProgram.uniformLocsById[loc], v0, v1, v2);
+			}
+			glUniform4f(loc, v0, v1, v2, v3) {
+				this.gl.uniform4f(this.boundProgram.uniformLocsById[loc], v0, v1, v2, v3);
+			}
+			glUniform4i(loc, v0, v1, v2, v3) {
+				this.gl.uniform4i(this.boundProgram.uniformLocsById[loc], v0, v1, v2, v3);
+			}
+			// Vertex Arrays
+			glCreateVertexArray() {
+				this.glObjects.push(this.gl.createVertexArray());
+				return this.glObjects.length - 1;
+			}
+			glBindVertexArray(id) {
+				this.gl.bindVertexArray(this.glObjects[id]);
+			}
+			glVertexAttribPointer(index, size, type, normalized, stride, offset) {
+				this.gl.vertexAttribPointer(index, size, type, normalized, stride, offset);
+			}
+			glEnableVertexAttribArray(index) {
+				this.gl.enableVertexAttribArray(index);
+			}
+			glDeleteVertexArray(id) {
+				this.gl.deleteVertexArray(this.glObjects[id]);
+				delete this.glObjects[id];
+				// this.glObjects.splice(id, 1);
+			}
+			// Buffers
+			glCreateBuffer() {
+				this.glObjects.push(this.gl.createBuffer());
+				return this.glObjects.length - 1;
+			}
+			glBindBuffer(kind, id) {
+				this.gl.bindBuffer(kind, this.glObjects[id]);
+			}
+			glBufferData(kind, size, data, usage) {
+				const dataArray = new Uint8Array(module.instance.exports.memory.buffer);
+				this.gl.bufferData(kind, dataArray, usage, data, size);
+			}
+			glDeleteBuffer(id) {
+				this.gl.deleteBuffer(this.glObjects[id]);
+				delete this.glObjects[id];
+				// this.glObjects.splice(id, 1);
+			}
+		}
 
 		// Entry point of the application
 		window.onload = async () => {
 
+			const webgl = new WASMWebGL("MainCanvas");
 			const logger = new Logger();
 			const input = new Input();
 
@@ -112,6 +277,39 @@
 						env_pc: (c) => logger.printChar(c),
 						// Polling input values all at once
 						env_ig: (ptr) => input.get(ptr),
+						// WebGL
+						glClearColor: (r, g, b, a) => webgl.glClearColor(r, g, b, a),
+						glClear: (m) => webgl.glClear(m),
+						glViewport: (x, y, w, h) => webgl.glViewport(x, y, w, h),
+						glDrawArrays: (m, f, c) => webgl.glDrawArrays(m, f, c),
+						glCreateShader: (k) => webgl.glCreateShader(k),
+						glShaderSource: (id, str) => webgl.glShaderSource(id, str),
+						glCompileShader: (id) => webgl.glCompileShader(id),
+						glDeleteShader: (id) => webgl.glDeleteShader(id),
+						glCreateProgram: () => webgl.glCreateProgram(),
+						glAttachShader: (id, shader) => webgl.glAttachShader(id, shader),
+						glLinkProgram: (id) => webgl.glLinkProgram(id),
+						glValidateProgram: (id) => webgl.glValidateProgram(id),
+						glUseProgram: (id) => webgl.glUseProgram(id),
+						glDeleteProgram: (id) => webgl.glDeleteProgram(id),
+						glGetUniformLocation: (program_id, str) => webgl.glGetUniformLocation(program_id, str),
+						glUniform1f: (loc, v0) => webgl.glUniform1f(loc, v0),
+						glUniform1i: (loc, v0) => webgl.glUniform1i(loc, v0),
+						glUniform2f: (loc, v0, v1) => webgl.glUniform2f(loc, v0, v1),
+						glUniform2i: (loc, v0, v1) => webgl.glUniform2i(loc, v0, v1),
+						glUniform3f: (loc, v0, v1, v2) => webgl.glUniform3f(loc, v0, v1, v2),
+						glUniform3i: (loc, v0, v1, v2) => webgl.glUniform3i(loc, v0, v1, v2),
+						glUniform4f: (loc, v0, v1, v2, v3) => webgl.glUniform4f(loc, v0, v1, v2, v3),
+						glUniform4i: (loc, v0, v1, v2, v3) => webgl.glUniform4i(loc, v0, v1, v2, v3),
+						glCreateVertexArray: () => webgl.glCreateVertexArray(),
+						glBindVertexArray: (id) => webgl.glBindVertexArray(id),
+						glVertexAttribPointer: (index, size, type, normalized, stride, offset) => webgl.glVertexAttribPointer(index, size, type, normalized, stride, offset),
+						glEnableVertexAttribArray: (index) => webgl.glEnableVertexAttribArray(index),
+						glDeleteVertexArray: (id) => webgl.glDeleteVertexArray(id),
+						glCreateBuffer: () => webgl.glCreateBuffer(),
+						glBindBuffer: (kind, id) => webgl.glBindBuffer(kind, id),
+						glBufferData: (kind, size, data, usage) => webgl.glBufferData(kind, size, data, usage),
+						glDeleteBuffer: (id) => webgl.glDeleteBuffer(id),
 					}
 				}
 			);
@@ -130,7 +328,8 @@
 </head>
 
 <body>
-
+	<canvas id="MainCanvas"
+		style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; margin: 0; border: 0; padding: 0;"></canvas>
 </body>
 
 </html>
