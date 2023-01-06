@@ -37,4 +37,4 @@ To implement:
 4. Sounds
     - WebAudio API / DOM Audio Element
 
-5. __ THE REST __
+5. ***THE REST***
