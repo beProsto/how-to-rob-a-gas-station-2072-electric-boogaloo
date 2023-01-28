@@ -2,9 +2,6 @@
 
 POtO Software's [How To Rob A Gas Station](https://poto-software.itch.io/how-to-rob-a-gas-station) game's fangame, written in pure `C` with `WebAssembly`.
 
-Check out POtO Software on [https://potosoftware.github.io/](https://potosoftware.github.io/)!
-Play their games on [https://poto-software.itch.io/](https://poto-software.itch.io/)!
-
 **This is just a fan game, check out the original game, it's awesome.***
 
 ## Code credits:
