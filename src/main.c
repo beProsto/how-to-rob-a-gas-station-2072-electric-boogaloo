@@ -1,13 +1,21 @@
+#include <env/audio.h>
 #include <env/input.h>
 #include <env/memory.h>
 #include <env/print.h>
 #include <env/webgl.h>
+#include <stdint.h>
 
 int loc_aspect;
+
+uint32_t audio;
 
 void
 main()
 {
+  audio = audioCreate();
+  audioSetBuffer(audio, 2);
+  audioSetLoop(audio, true);
+  audioPlay(audio);
   const char* string1 = "Hello, Marmeladka! What's Up at yours bro?";
 
   int numberToReturn = 4 * 4;

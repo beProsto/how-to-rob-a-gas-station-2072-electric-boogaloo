@@ -16,6 +16,8 @@
 	</style>
 
 	<script>
+		// Global check if it's an itch.io build
+		const IS_ITCHIO = false;
 		// Global module reference
 		let module = {};
 
@@ -283,32 +285,137 @@
 				this.resonanceAudioScene.output.connect(this.audioCtx.destination);
 				this.resonanceAudioScene.setRoomProperties({}, {});
 
-				this.resonanceSource = this.resonanceAudioScene.createSource();
-				this.resonanceSource.setPosition(0.0, 0.0, -0.5);
+				const audioCtx = this.audioCtx;
+				const resonanceAudio = this.resonanceAudioScene;
 
-				this.downloadAndPlayAudio = async (url) => {
+				class WASMAudioNode {
+					constructor() {
+						this.is3d = false;
+						this.isLoop = false;
+						this.isPlaying = false;
+
+						this.position = [0.0, 0.0, 0.0];
+
+						this.bufferData = null;
+
+						this.resonanceSource = resonanceAudio.createSource();
+						this.#createBufferSource();
+					}
+					#createBufferSource() {
+						this.isPlaying = false;
+
+						this.bufferSource = audioCtx.createBufferSource();
+						if (this.is3d) {
+							this.bufferSource.connect(this.resonanceSource.input);
+						}
+						else {
+							this.bufferSource.connect(audioCtx.destination);
+						}
+						this.bufferSource.loop = this.isLoop;
+						this.bufferSource.buffer = this.bufferData;
+
+						this.bufferSource.onended = () => {
+							this.#createBufferSource();
+						};
+					}
+					setBuffer(buffer) {
+						this.bufferData = buffer;
+						this.#createBufferSource();
+					}
+					setLoop(loop) {
+						if (this.isLoop == loop) return;
+						this.isLoop = loop;
+						this.bufferSource.loop = this.isLoop;
+					}
+					set3d(is3d) {
+						if (this.is3d == is3d) return;
+						this.is3d = is3d;
+						this.#createBufferSource();
+					}
+					setPosition(x, y, z) {
+						this.position[0] = x;
+						this.position[1] = y;
+						this.position[2] = z;
+						this.resonanceSource.setPosition(x, y, z);
+					}
+					play() {
+						if (this.isPlaying) return;
+
+						this.bufferSource.start();
+						this.isPlaying = true;
+					}
+					stop() {
+						if (!this.isPlaying) return;
+
+						this.bufferSource.stop();
+						this.bufferSource.onended = () => { };
+						this.#createBufferSource();
+					}
+				};
+
+				this.audioNodes = [];
+
+				this.createAudioNode = () => {
+					this.audioNodes.push(new WASMAudioNode());
+					return this.audioNodes.length - 1;
+				};
+				this.deleteAudioNode = (id) => {
+					this.audioNodes[id].stop();
+					delete this.audioNodes[id];
+				};
+
+				this.fetchAudioBuffer = async (url) => {
 					const audioFile = await fetch(url);
 					const audioArrayBuffer = await audioFile.arrayBuffer();
 					const audioDecodedData = await this.audioCtx.decodeAudioData(audioArrayBuffer);
-
-					const bufferSource = this.audioCtx.createBufferSource();
-					bufferSource.connect(this.resonanceSource.input);
-					bufferSource.buffer = audioDecodedData;
-					bufferSource.start();
+					return audioDecodedData;
 				};
 			}
-
 		}
 
-		// Entry point of the application
-		window.onload = async () => {
+		// Upon loading the website, load the resource and start the application
+		if (IS_ITCHIO) {
+			window.onload = async () => { await main() };
+		}
+		else {
+			window.onload = async () => {
+				const message = document.createElement("h1");
+				message.innerText = "Click To Begin";
+				message.style = "color: white; position: absolute; left: 50%; top: 50%; translate: -50% -50%; font-family: monospace;";
+				document.body.appendChild(message);
+				const callback = async () => {
+					window.removeEventListener("click", callback);
+					document.body.removeChild(message);
+					await main();
+				};
+				window.addEventListener("click", callback);
+			};
+		}
 
+		// Preload resources
+		const preload = async () => {
+
+		};
+
+
+		// Entry point of the application
+		const main = async () => {
 			const webgl = new WASMWebGL("MainCanvas");
 			const logger = new Logger();
 			const input = new Input();
-			let audio = new WASMWebAudio();
+			const audio = new WASMWebAudio();
 
-			audio.downloadAndPlayAudio("./nsmusic-waterfall.mp3");
+			const soundFilenames = [
+				"defunct3-laser-short.wav",
+				"luckylittleraven-midnight.wav",
+				"luckylittleraven-sweetclouds.wav",
+				"nsmusic-waterfall.mp3"
+			];
+
+			let soundBuffers = [];
+			for (let i = 0; i < soundFilenames.length; i++) {
+				soundBuffers[i] = await audio.fetchAudioBuffer(soundFilenames[i]);
+			}
 
 			module = await WebAssembly.instantiateStreaming(
 				fetch("./build/main.wasm"),
@@ -353,6 +460,15 @@
 						glBindBuffer: (kind, id) => webgl.glBindBuffer(kind, id),
 						glBufferData: (kind, size, data, usage) => webgl.glBufferData(kind, size, data, usage),
 						glDeleteBuffer: (id) => webgl.glDeleteBuffer(id),
+						// WebAudio
+						audioCreate: () => audio.createAudioNode(),
+						audioDelete: (id) => audio.deleteAudioNode(id),
+						audioPlay: (id) => audio.audioNodes[id].play(),
+						audioStop: (id) => audio.audioNodes[id].stop(),
+						audioSet3d: (id, is3d) => audio.audioNodes[id].set3d(is3d),
+						audioSetLoop: (id, loop) => audio.audioNodes[id].setLoop(loop),
+						audioSetPosition: (id, x, y, z) => audio.audioNodes[id].setPosition(x, y, z),
+						audioSetBuffer: (id, buffid) => audio.audioNodes[id].setBuffer(soundBuffers[buffid]),
 					}
 				}
 			);
