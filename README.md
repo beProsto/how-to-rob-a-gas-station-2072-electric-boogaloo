@@ -34,7 +34,8 @@ To implement:
     - Touch controls *(Left for later)*
 3. ~~WebGL implementation~~
     - ~~porting~~
-4. Sounds
-    - WebAudio API / DOM Audio Element
+4. ~~Sounds~~
+    - ~~WebAudio API / DOM Audio Element~~
+5. Resource prefetcher
 
-5. ***THE REST***
+6. ***THE REST***
