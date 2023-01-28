@@ -18,4 +18,4 @@ audioSetLoop(uint32_t id, bool loop);
 void
 audioSetPosition(uint32_t id, float x, float y, float z);
 void
-audioSetBuffer(uint32_t id, uint32_t buffid);
+audioSetBuffer(uint32_t id, uint32_t bufferid);

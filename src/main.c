@@ -16,6 +16,7 @@ main()
   audioSetBuffer(audio, 2);
   audioSetLoop(audio, true);
   audioPlay(audio);
+  
   const char* string1 = "Hello, Marmeladka! What's Up at yours bro?";
 
   int numberToReturn = 4 * 4;
